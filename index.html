@@ -555,9 +555,10 @@
           }
         });
         
-        // Play incorrect answer sound
+        // Play incorrect answer sound (15% quieter)
         if (audioEnabled) {
           incorrectAudio.currentTime = 0;
+          incorrectAudio.volume = 0.85; // 85% volume (15% quieter)
           incorrectAudio.play().catch(error => {
             console.log('Incorrect audio play failed:', error);
           });
