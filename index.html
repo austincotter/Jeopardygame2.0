@@ -226,7 +226,9 @@
 </head>
 <body>
   <!-- Embedded theme audio -->
-  <audio id="themeAudio" src="data:audio/mp3;base64,PASTE_YOUR_BASE64_HERE" preload="auto"></audio>
+  <audio id="themeAudio" src="Jeopardy-theme-song.mp3" preload="auto"></audio>
+  <audio id="correctAudio" src="rightanswer.mp3" preload="auto"></audio>
+  <audio id="incorrectAudio" src="incorrectanswer.mp3" preload="auto"></audio>
 
   <div class="header">
     <h1>🎉 Birthday Jeopardy! 🎉</h1>
@@ -249,14 +251,42 @@
       <button id="closeBtn">Play Again</button>
     </div>
   </div>
+  
+  <!-- Introduction Overlay -->
+  <div class="overlay" id="introOverlay" style="visibility: visible;">
+    <div id="introContent" style="background: #fff; color: #000; padding: 40px; max-width: 600px; text-align: center; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+      <h1 style="color: #00539C; margin-bottom: 20px;">🎉 Welcome to Birthday Jeopardy! 🎉</h1>
+      <p style="font-size: 1.2em; margin-bottom: 30px; line-height: 1.6;">
+        Test your knowledge of the years 1972 and 1974! Answer questions about music, movies, TV, prices, headlines, and fashion trends.
+      </p>
+      <p style="font-size: 1.1em; margin-bottom: 30px; color: #666;">
+        Click on any square to answer a question. Get it right and earn money! Complete all questions to see your birthday celebration!
+      </p>
+      
+      <div style="margin: 30px 0;">
+        <button id="enableAudioBtn" style="padding: 15px 30px; background: #4CAF50; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 1.1em; margin: 10px;">
+          🔊 Enable Audio (Recommended)
+        </button>
+        <div id="audioStatus" style="margin-top: 10px; font-size: 0.9em; color: #666;"></div>
+      </div>
+      
+      <button id="startGameBtn" style="padding: 15px 40px; background: #00539C; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 1.3em; font-weight: bold; margin-top: 20px;" disabled>
+        🎮 Start Game
+      </button>
+    </div>
+  </div>
 
   <script>
     const themeAudio = document.getElementById('themeAudio');
+    const correctAudio = document.getElementById('correctAudio');
+    const incorrectAudio = document.getElementById('incorrectAudio');
     const categories = ["Music","Movies","TV & Pop Culture","Everyday Prices","Headlines","Fashion & Trends"];
     const values = [100,200,300,400,500];
     let balance = 0;
     let answeredQuestions = new Set();
     let currentQuestion = null;
+    let audioEnabled = false;
+    let gameStarted = false;
 
     // Each answer must be 1972, 1974, or 'Neither'
     const qna = {
@@ -451,6 +481,8 @@
     }
 
     function showQuestion(cat, val) {
+      if (!gameStarted) return; // Don't allow questions before game starts
+      
       const questionKey = `${cat}-${val}`;
       if (answeredQuestions.has(questionKey)) {
         return; // Question already answered
@@ -473,9 +505,15 @@
         <button id="closeBtn" onclick="closeQuestion()" style="display: none;">Continue</button>
       `;
       
-      themeAudio.currentTime = 0;
-      themeAudio.play();
       document.getElementById("overlay").classList.add("active");
+      
+      // Play audio if enabled
+      if (audioEnabled) {
+        themeAudio.currentTime = 0;
+        themeAudio.play().catch(error => {
+          console.log('Audio play failed:', error);
+        });
+      }
     }
 
     function selectAnswer(selectedAnswer) {
@@ -497,6 +535,14 @@
         balance += currentQuestion.val;
         resultDiv.innerHTML = `<div class="result correct">🎉 Correct! You earned $${currentQuestion.val}! 🎉</div>`;
         document.querySelector('.answer-btn.selected').classList.add('correct');
+        
+        // Play correct answer sound
+        if (audioEnabled) {
+          correctAudio.currentTime = 0;
+          correctAudio.play().catch(error => {
+            console.log('Correct audio play failed:', error);
+          });
+        }
       } else {
         // Incorrect answer
         resultDiv.innerHTML = `<div class="result incorrect">❌ Wrong! The correct answer was: ${item.a}</div>`;
@@ -508,6 +554,14 @@
             btn.classList.add('correct');
           }
         });
+        
+        // Play incorrect answer sound
+        if (audioEnabled) {
+          incorrectAudio.currentTime = 0;
+          incorrectAudio.play().catch(error => {
+            console.log('Incorrect audio play failed:', error);
+          });
+        }
       }
       
       answeredQuestions.add(currentQuestion.questionKey);
@@ -575,10 +629,47 @@
 
     // Event listeners
     document.getElementById("closeBtn").onclick = resetGame;
+    
+    // Introduction event listeners
+    document.getElementById("enableAudioBtn").onclick = function() {
+      this.textContent = "🔄 Enabling...";
+      this.disabled = true;
+      
+      themeAudio.play().then(() => {
+        themeAudio.pause();
+        themeAudio.currentTime = 0;
+        audioEnabled = true;
+        this.textContent = "✅ Audio Enabled!";
+        this.style.background = "#4CAF50";
+        document.getElementById("audioStatus").textContent = "Audio is ready! 🎵";
+        document.getElementById("startGameBtn").disabled = false;
+      }).catch(error => {
+        console.log('Audio enablement failed:', error);
+        this.textContent = "❌ Audio Blocked";
+        this.style.background = "#f44336";
+        document.getElementById("audioStatus").textContent = "Audio blocked by browser - game will work without sound";
+        document.getElementById("startGameBtn").disabled = false;
+      });
+    };
+    
+    document.getElementById("startGameBtn").onclick = function() {
+      gameStarted = true;
+      document.getElementById("introOverlay").style.visibility = "hidden";
+      document.getElementById("introOverlay").classList.remove("active");
+    };
 
     // Initialize game
     createBoard();
     updateBalance();
+    
+    // Test audio loading
+    themeAudio.addEventListener('loadeddata', () => {
+      console.log('Audio file loaded successfully!');
+    });
+    
+    themeAudio.addEventListener('error', (e) => {
+      console.log('Audio file failed to load:', e);
+    });
   </script>
 </body>
 </html> 
